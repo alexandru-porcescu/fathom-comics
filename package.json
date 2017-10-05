@@ -1,0 +1,42 @@
+{
+  "name": "fathom-comics",
+  "description": "Comic extraction using Fathom.",
+  "version": "0.1.0",
+  "author": "Erik Rose <erik@mozilla.com>",
+  "bugs": {
+    "url": "https://github.com/erikrose/fathom-comics/issues"
+  },
+  "dependencies": {
+    "fathom-web": "^2.1.0"
+  },
+  "devDependencies": {
+    "chai": "^4.0.2",
+    "coveralls": "^2.11.11",
+    "eslint": "^3.7.1",
+    "eslint-plugin-node": "^5.1.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.2.0",
+    "selenium-webdriver": "^3.5.0"
+  },
+  "engines": {
+    "node": ">= 6.0.0"
+  },
+  "homepage": "https://github.com/swathiiyer2/fathom-products",
+  "keywords": [
+    "semantic extraction",
+    "scoring",
+    "ranking",
+    "comic"
+  ],
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/erikrose/fathom-comics.git"
+  },
+  "scripts": {
+    "coveralls": "cat ./coverage/lcov.info | coveralls",
+    "lint": "make lint",
+    "pretest": "npm run lint",
+    "test": "istanbul cover _mocha"
+  }
+}
