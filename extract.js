@@ -1,9 +1,9 @@
 // Unless you use Safari Technology Preview (11.1, in my case), this will throw
 // NoSuchWindowErrors.
 
-const {readFileSync, writeFile, readdirSync, statSync} = require('fs');
-const {dirname, join} = require('path');
-const webdriver = require('selenium-webdriver');
+const {writeFile, readdirSync, statSync} = require('fs');
+const {join} = require('path');
+const {Builder, Capabilities} = require('selenium-webdriver');
 const {Options} = require('selenium-webdriver/safari');
 
 
@@ -48,8 +48,7 @@ if (require.main === module) {
   const training = join(__dirname, 'corpus' , 'training');
   const options = new Options().setCleanSession(true)
                                .setTechnologyPreview(true);
-  const driver = new webdriver.Builder()
-                              .withCapabilities(webdriver.Capabilities.safari())
+  const driver = new Builder().withCapabilities(Capabilities.safari())
                               .setSafariOptions(options)
                               .build();
   driver.manage().window().setSize(1366, 768);
