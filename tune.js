@@ -39,22 +39,33 @@ if (require.main === module) {
     let coeffs = [0, 0];
 
     /**
-     * Build up a total score as we run the ruleset over a supervised corpus.
+     * A run of a ruleset over an entire supervised corpus of pages
+     *
+     * Builds up a total score and reports it at the end.
      */
     class RunAgainstCorpus {
         /**
-         * @arg rules {Ruleset} A ruleset, tuned with the coefficients you want
-         *     to try
+         * Run ruleset against every document in the corpus, and make the final
+         * score ready for retrieval by calling score() or humanScore().
+         *
+         * @arg coeffs {Number[]|undefined} The coefficients by which to
+         *     parametrize the ruleset
          */
-        constructor(rules) {
-            this.rules = rules;
-            this.scoreParts = {number: 0, numberWrong: 0};
+        constructor(coeffs) {
+            const ruleset = this.ruleset();
+            const parametrizedRuleset = coeffs === undefined ? ruleset() : ruleset(...coeffs);
+            this.scoreParts = this.initialScoreParts();
+            for (const sample of this.corpus(join(__dirname, 'corpus', 'training'))) {
+                this.updateScoreParts(sample, parametrizedRuleset, this.scoreParts);
+            }
         }
 
-        run() {
-            for (const sample of this.corpus(join(__dirname, 'corpus', 'training'))) {
-                this.updateScoreParts(sample);
-            }
+        ruleset() {
+            return comicRuleset;
+        }
+
+        initialScoreParts() {
+            return {number: 0, numberWrong: 0};
         }
 
         /**
@@ -77,20 +88,17 @@ if (require.main === module) {
          * @arg sample An arbitrary data structure that specifies which sample
          *     from the corpus to run against and the expected answer
          */
-        updateScoreParts(sample) {
-            const comic = this.rules.against(sample.doc).get('comic')[0];
+        updateScoreParts(sample, ruleset, scoreParts) {
+            const comic = ruleset.against(sample.doc).get('comic')[0];
             if (comic.element.getAttribute('data-fathom-comic') !== 1) {
-                this.scoreParts.numberWrong += 1;
+                scoreParts.numberWrong += 1;
                 // Could we turn this into an "amount wrong" by saying how far (in index (which would consider some "second best" images crazy bad), or in space (maybe better)) the selected element is from the correct one? Maybe favor the cheaper distance function, or just try both and see which leads the optimizer to a set of coeffs with more right answers.
                 console.log('Wrong answer for ' + sample.name + ': ' + comic.innerHtml);
             }
-            this.scoreParts.number += 1;
+            scoreParts.number += 1;
         }
 
         score() {
-            if (this.scoreParts.number === 0) {
-                this.run();
-            }
             return this.scoreParts.numberWrong;
         }
 
@@ -101,7 +109,7 @@ if (require.main === module) {
 
     class Tuner extends Annealer {
         solutionCost(coeffs) {
-            return new RunAgainstCorpus(comicRuleset(...coeffs)).score();
+            return new RunAgainstCorpus(coeffs).score();
         }
 
         randomTransition(solution) {
@@ -133,5 +141,5 @@ if (require.main === module) {
         coeffs = annealer.anneal();
     }
     console.log('Tuned coefficients:', coeffs);
-    console.log('% right:', new RunAgainstCorpus(comicRuleset()).humanScore());  // TODO: Replace with validation set once we get a decently high number.
+    console.log('% right:', new RunAgainstCorpus().humanScore());  // TODO: Replace with validation set once we get a decently high number.
 }
