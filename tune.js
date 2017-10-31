@@ -47,10 +47,16 @@ function comicRuleset(boundingRect, coeffSize = 1) {
         return !!bannerSizes[width + 'x' + height];
     }
 
+    /** Return the number of pixels in an image, as a size metric. */
+    function numberOfPixels(element) {
+        const rect = boundingRect(element);
+        return (rect.bottom - rect.top) * (rect.right - rect.left);
+    }
+
     return ruleset(
         // Start with images that aren't banner-sized:
         rule(dom('img').when(fnode => !isBannerSize(fnode.element)), type('comic')),
-        rule(type('comic'), score(fnode => boundingRect(fnode.element) * coeffSize)),
+        rule(type('comic'), score(fnode => numberOfPixels(fnode.element) * coeffSize)),
         rule(type('comic').max(), out('comic'))
     );
 }
@@ -178,8 +184,9 @@ if (require.main === module) {
          *     from the corpus to run against and the expected answer
          */
         updateScoreParts(sample, ruleset, scoreParts) {
-            const comic = ruleset.against(sample.doc).get('comic')[0];
-            if (comic.element.getAttribute('data-fathom-comic') !== 1) {
+            const facts = ruleset.against(sample.doc);
+            const comic = facts.get('comic')[0];
+            if (comic.element.getAttribute('data-fathom-comic') !== "1") {
                 scoreParts.numberWrong += 1;
                 // Could we turn this into an "amount wrong" by saying how far (in index (which would consider some "second best" images crazy bad), or in space (maybe better)) the selected element is from the correct one? Maybe favor the cheaper distance function, or just try both and see which leads the optimizer to a set of coeffs with more right answers.
                 console.log('Wrong answer for ' + sample.name + ': ' + comic.innerHtml);
@@ -236,6 +243,6 @@ if (require.main === module) {
     } else {
         coeffs = [10];
     }
-    console.log('Tuned coefficients:', coeffs);
+    console.log('Using coefficients', coeffs);
     console.log('% right:', new Run(new Corpus()).humanScore());  // TODO: Replace with validation set once we get a decently high number.
 }
