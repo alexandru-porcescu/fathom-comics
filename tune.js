@@ -189,7 +189,7 @@ if (require.main === module) {
             if (comic.element.getAttribute('data-fathom-comic') !== "1") {
                 scoreParts.numberWrong += 1;
                 // Could we turn this into an "amount wrong" by saying how far (in index (which would consider some "second best" images crazy bad), or in space (maybe better)) the selected element is from the correct one? Maybe favor the cheaper distance function, or just try both and see which leads the optimizer to a set of coeffs with more right answers.
-                console.log('Wrong answer for ' + sample.name + ': ' + comic.element.outerHtml);
+                console.log('Wrong answer for ' + sample.name + ': ' + comic.element.outerHTML);
             }
             scoreParts.number += 1;
         }
