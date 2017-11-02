@@ -1,19 +1,12 @@
-const {readFileSync, readdirSync, statSync} = require('fs');
-const {basename, join} = require('path');
+const {readFileSync} = require('fs');
+const {join} = require('path');
 
 const {jsdom} = require('jsdom/lib/old-api');
 
 const {dom, props, out, rule, ruleset, score, type} = require('fathom-web');
+const {Annealer, Corpus, Run, Sample} = require('fathom-web/optimizers');
+const {staticDom} = require('fathom-web/test/testing');
 
-
-/**
- * Parse an HTML doc, and return a DOM-compliant interface to it. Do not
- * execute any of its inline scripts.
- */
-function staticDom(html) {
-    return jsdom(html, {features: {ProcessExternalResources: false,
-                                   FetchExternalResources: false}});
-}
 
 function comicRuleset(boundingRect, coeffSize = 1) {
     function isBannerSize(element) {
@@ -61,14 +54,6 @@ function comicRuleset(boundingRect, coeffSize = 1) {
     );
 }
 
-/**
- * @return {String[]} The name (not path) of each directory directly within a
-*      given path
- */
-function dirsIn(path) {
-  return readdirSync(path).filter(f => statSync(join(path, f)).isDirectory());
-}
-
 function readUtf8File(path) {
     return readFileSync(path, {encoding: 'utf8'});
 }
@@ -79,11 +64,9 @@ if (require.main === module) {
     const {Annealer} = require('fathom-web/optimizers');
     const {argv} = require('process');
 
-    class Sample {
+    class ComicSample extends Sample {
         constructor(sampleDir) {
-            const html = readUtf8File(join(sampleDir, 'source.html'));
-            this.name = basename(sampleDir)
-            this.doc = staticDom(html);
+            super(sampleDir);
             this._boundingRects = this._getBoundingRects(this.doc, sampleDir);
         }
 
@@ -113,20 +96,13 @@ if (require.main === module) {
     /**
      * A reusable, caching representation of a group of samples
      */
-    class Corpus {
-        constructor() {
-            const baseFolder = this.baseFolder();
-            this.samples = new Map();  // folder name -> Sample
-            for (const sampleDir of dirsIn(baseFolder)) {
-                this.samples.set(sampleDir, new Sample(join(baseFolder, sampleDir)));
-            }
-        }
-
-        /**
-         * Return the path to the folder in which samples live.
-         */
+    class ComicCorpus extends Corpus {
         baseFolder() {
             return join(__dirname, 'corpus', 'training');
+        }
+
+        sampleFromPath(sampleDirPath) {
+            return new ComicSample(sampleDirPath);
         }
     }
 
@@ -135,24 +111,7 @@ if (require.main === module) {
      *
      * Builds up a total score and reports it at the end.
      */
-    class Run {
-        /**
-         * Run ruleset against every document in the corpus, and make the final
-         * score ready for retrieval by calling score() or humanScore().
-         *
-         * @arg coeffs {Number[]|undefined} The coefficients by which to
-         *     parametrize the ruleset
-         */
-        constructor(corpus, coeffs) {
-            const ruleset = this.ruleset();
-            const parametrizedRuleset = coeffs === undefined ? ruleset() : ruleset(...coeffs);
-            this.scoreParts = this.initialScoreParts();
-            this.corpus = corpus;
-            for (this.currentSample of corpus.samples.values()) {
-                this.updateScoreParts(this.currentSample, parametrizedRuleset, this.scoreParts);
-            }
-        }
-
+    class ComicRun extends Run {
         /**
          * Return the dimensions of an element in the current sample.
          *
@@ -169,7 +128,7 @@ if (require.main === module) {
          * Return a callable that, given coefficients as arguments, returns a
          * parametrized ruleset.
          */
-        ruleset() {
+        rulesetMaker() {
             return (...coeffs) => comicRuleset(this.boundingRectFromCurrentSample.bind(this), ...coeffs);
         }
 
@@ -206,11 +165,11 @@ if (require.main === module) {
     class Tuner extends Annealer {
         constructor() {
             super();
-            this.corpus = new Corpus();
+            this.corpus = new ComicCorpus();
         }
 
         solutionCost(coeffs) {
-            return new Run(this.corpus, coeffs).score();
+            return new ComicRun(this.corpus, coeffs).score();
         }
 
         randomTransition(solution) {
@@ -244,5 +203,5 @@ if (require.main === module) {
         coeffs = [10];
     }
     console.log('Using coefficients', coeffs);
-    console.log('% right:', new Run(new Corpus()).humanScore());  // TODO: Replace with validation set once we get a decently high number.
+    console.log('% right:', new ComicRun(new ComicCorpus()).humanScore());  // TODO: Replace with validation set once we get a decently high number.
 }
