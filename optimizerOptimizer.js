@@ -322,7 +322,7 @@ function injectProblem(problem, optimizer) {
     }
 }
 
-function qualityOfOptimizers(optimizers, problems) {
+function costOfOptimizers(optimizers, problems) {
     const costs = [];
     const times = [];
     for (const [name, pClass] of problems.entries()) {
@@ -375,7 +375,7 @@ function main() {
     problems.set('StaircaseSine', StaircaseSine);
     problems.set('BinPacking', BinPacking);
 
-    qualityOfOptimizers(optimizers, problems);
+    costOfOptimizers(optimizers, problems);
 }
 
 function sigmoid(x) {
@@ -413,7 +413,7 @@ class AnnealerTuner extends Annealer {
         problems.set('Linear', Linear);
         const optimizers = new Map();
         optimizers.set('Annealer', new Annealer(...coeffs));
-        return qualityOfOptimizers(optimizers, problems);
+        return costOfOptimizers(optimizers, problems);
     }
 }
 
@@ -423,4 +423,4 @@ const tuner = new AnnealerTuner([ 10643.296506954695,
   4.231731642265747 ]);
 const coeffs = tuner.anneal();
 console.log('Coeffs:', coeffs);
-console.log('Quality:', tuner.solutionCost(coeffs));
+console.log('Cost:', tuner.solutionCost(coeffs));
